@@ -1,0 +1,607 @@
+{
+  "name": "FlowPilot - 01 - Intelligent Blocker Detection",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1MAafj-EbHJiJbVSEtLJX3Z-fhCoxU7XoR6YiXBKLPWg",
+          "mode": "list",
+          "cachedResultName": "FlowPilot - Task Management",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MAafj-EbHJiJbVSEtLJX3Z-fhCoxU7XoR6YiXBKLPWg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Tasks",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MAafj-EbHJiJbVSEtLJX3Z-fhCoxU7XoR6YiXBKLPWg/edit#gid=0"
+        },
+        "event": "rowUpdate",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ebcf40a7-198b-4d50-8f66-3e8b77d92ef0",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "ClvHFLyiK9yvJphX",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f1537ae2-587a-4188-b800-1fae2c0bd5d0",
+              "leftValue": "={{ $json.Status }}",
+              "rightValue": "Blocked",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "59cf653a-39c1-4401-8af3-3cffe89c7a8a",
+              "leftValue": "={{ $json.AI_Analysis }}",
+              "rightValue": "={{ $json.AI_Analysis }}",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "6c9647db-e721-4327-b163-6466a1ef99d7",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are FlowPilot, an intelligent AI project management assistant.\n\nAnalyze the following blocked task.\n\nTask ID: {{ $json.Task_ID }}\nTask Name: {{ $json.Task_Name }}\nDescription: {{ $json.Description }}\nAssigned To: {{ $json.Assigned_To }}\nPriority: {{ $json.Priority }}\nBlocker Reason: {{ $json.Blocker_Reason }}\n\nYour responsibilities:\n1. Explain the blocker clearly in 1-2 sentences.\n2. Identify the likely dependency preventing progress.\n3. Suggest one specific, practical next action.\n4. Explain whether the issue needs manager attention.\n5. Do not invent facts, deadlines, or team members.\n\nRespond in this exact format:\n\nBLOCKER_ANALYSIS:\nDEPENDENCY:\nSUGGESTED_ACTION:\nMANAGER_ATTENTION: YES or NO\nREASON:",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        448,
+        -96
+      ],
+      "id": "055795fa-95dd-487c-977d-63bb5a923be0",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        448,
+        160
+      ],
+      "id": "3e698379-278d-45bd-b4ae-7677bd0d99aa",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1MAafj-EbHJiJbVSEtLJX3Z-fhCoxU7XoR6YiXBKLPWg",
+          "mode": "list",
+          "cachedResultName": "FlowPilot - Task Management",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MAafj-EbHJiJbVSEtLJX3Z-fhCoxU7XoR6YiXBKLPWg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Tasks",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MAafj-EbHJiJbVSEtLJX3Z-fhCoxU7XoR6YiXBKLPWg/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Task_ID": "={{ $('If').item.json.Task_ID }}",
+            "AI_Analysis": "={{ $json.text.replace(/\\\\n/g, '\\n') }}",
+            "Suggested_Action": "={{ $json.text.match(/SUGGESTED_ACTION:\\s*([\\s\\S]*?)(?=\\s*MANAGER_ATTENTION:|$)/)?.[1]?.trim() || '' }}"
+          },
+          "matchingColumns": [
+            "Task_ID"
+          ],
+          "schema": [
+            {
+              "id": "Task_ID",
+              "displayName": "Task_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Task_Name",
+              "displayName": "Task_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Assigned_To",
+              "displayName": "Assigned_To",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Deadline",
+              "displayName": "Deadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Blocker_Reason",
+              "displayName": "Blocker_Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "AI_Analysis",
+              "displayName": "AI_Analysis",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Suggested_Action",
+              "displayName": "Suggested_Action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last_Notification",
+              "displayName": "Last_Notification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Escalation_Status",
+              "displayName": "Escalation_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        816,
+        -96
+      ],
+      "id": "1973bd91-7b1c-4c3d-886c-ec05d51a934f",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hw85XIUy0yRso3o3",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('If').item.json.Email }}",
+        "subject": "={{ 'FlowPilot | Blocked Task Alert - ' + $('If').item.json.Task_ID }}",
+        "message": "={{\n`<h2>FlowPilot - Task Blocker Alert</h2>\n\n<p>Hello ${$('If').item.json.Assigned_To},</p>\n\n<p>FlowPilot has identified a blocker affecting your assigned task.</p>\n\n<p><b>Task ID:</b> ${$('If').item.json.Task_ID}</p>\n<p><b>Task:</b> ${$('If').item.json.Task_Name}</p>\n<p><b>Priority:</b> ${$('If').item.json.Priority}</p>\n<p><b>Blocker:</b> ${$('If').item.json.Blocker_Reason}</p>\n\n<h3>AI Recommended Action</h3>\n<p>${$json.Suggested_Action}</p>\n\n<p>Please review the recommendation and update your task status when progress is made.</p>\n\n<hr>\n<p><i>This is an automated notification from FlowPilot.</i></p>`\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        -96
+      ],
+      "id": "521e194e-ae52-4f99-ad06-97886eccdddf",
+      "name": "Send a message",
+      "webhookId": "cf8dcc54-7eab-45fb-8848-bd57c6134703",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "clx0YiaoUZVxuR24",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1MAafj-EbHJiJbVSEtLJX3Z-fhCoxU7XoR6YiXBKLPWg",
+          "mode": "list",
+          "cachedResultName": "FlowPilot - Task Management",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MAafj-EbHJiJbVSEtLJX3Z-fhCoxU7XoR6YiXBKLPWg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Tasks",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MAafj-EbHJiJbVSEtLJX3Z-fhCoxU7XoR6YiXBKLPWg/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Task_ID": "={{ $('If').item.json.Task_ID }}",
+            "Last_Notification": "={{ $now.toISO() }}",
+            "Escalation_Status": "Notified"
+          },
+          "matchingColumns": [
+            "Task_ID"
+          ],
+          "schema": [
+            {
+              "id": "Task_ID",
+              "displayName": "Task_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Task_Name",
+              "displayName": "Task_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Assigned_To",
+              "displayName": "Assigned_To",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Deadline",
+              "displayName": "Deadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Blocker_Reason",
+              "displayName": "Blocker_Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "AI_Analysis",
+              "displayName": "AI_Analysis",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Suggested_Action",
+              "displayName": "Suggested_Action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Last_Notification",
+              "displayName": "Last_Notification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Escalation_Status",
+              "displayName": "Escalation_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1264,
+        -96
+      ],
+      "id": "3337424b-7d2d-464b-a298-67e344734bf3",
+      "name": "Update row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hw85XIUy0yRso3o3",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d14ceedc-e613-4f1b-98c7-d18ee3344e51",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "30c7b244f5d63dbe2517412d112771116d00099cd6bdc11d68adc5b74041e029"
+  },
+  "nodeGroups": [],
+  "id": "uRH8q9HCXrumfVe6",
+  "tags": []
+}
