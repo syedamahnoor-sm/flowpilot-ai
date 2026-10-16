@@ -83,12 +83,11 @@
             },
             {
               "id": "c6b179ce-7887-4e97-8f01-ef9345e8545e",
-              "leftValue": "={{ $json.Deadline_Reminder_Sent }}",
-              "rightValue": "",
+              "leftValue": "={{ String($json.Deadline || '').trim() }}",
+              "rightValue": "={{ String($json.Last_Reminded_Deadline || '').trim() }}",
               "operator": {
                 "type": "string",
-                "operation": "empty",
-                "singleValue": true
+                "operation": "notEquals"
               }
             }
           ],
@@ -115,7 +114,7 @@
       "typeVersion": 1.9,
       "position": [
         672,
-        -87.05555555555549
+        -80
       ],
       "id": "7738867d-e3e2-4c58-9800-2c2c55e41ad5",
       "name": "Basic LLM Chain"
@@ -185,7 +184,8 @@
           "value": {
             "Task_ID": "={{ $('If').item.json.Task_ID }}",
             "Deadline_Reminder_Sent": "Yes",
-            "Deadline_Reminder_Date": "={{ $now.toISODate() }}"
+            "Deadline_Reminder_Date": "={{ $now.toISODate() }}",
+            "Last_Reminded_Deadline": "={{ $('If').item.json.Deadline }}"
           },
           "matchingColumns": [
             "Task_ID"
@@ -342,6 +342,26 @@
               "removed": false
             },
             {
+              "id": "Last_Analyzed_Blocker",
+              "displayName": "Last_Analyzed_Blocker",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Last_Reminded_Deadline",
+              "displayName": "Last_Reminded_Deadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
               "id": "row_number",
               "displayName": "row_number",
               "required": false,
@@ -448,7 +468,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "cc2f18cb-54b6-458f-b5e0-e4753893e40d",
+  "versionId": "68280272-47ee-49d4-a953-50b20ad778bb",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "30c7b244f5d63dbe2517412d112771116d00099cd6bdc11d68adc5b74041e029"

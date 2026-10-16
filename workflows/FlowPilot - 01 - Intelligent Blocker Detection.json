@@ -63,12 +63,11 @@
             },
             {
               "id": "59cf653a-39c1-4401-8af3-3cffe89c7a8a",
-              "leftValue": "={{ $json.AI_Analysis }}",
-              "rightValue": "={{ $json.AI_Analysis }}",
+              "leftValue": "={{ ($json.Blocker_Reason || '').trim() }}",
+              "rightValue": "={{ ($json.Last_Analyzed_Blocker || '').trim() }}",
               "operator": {
                 "type": "string",
-                "operation": "empty",
-                "singleValue": true
+                "operation": "notEquals"
               }
             }
           ],
@@ -355,7 +354,8 @@
           "value": {
             "Task_ID": "={{ $('If').item.json.Task_ID }}",
             "Last_Notification": "={{ $now.toISO() }}",
-            "Escalation_Status": "Notified"
+            "Escalation_Status": "Notified",
+            "Last_Analyzed_Blocker": "={{ $('If').item.json.Blocker_Reason }}"
           },
           "matchingColumns": [
             "Task_ID"
@@ -478,7 +478,8 @@
               "defaultMatch": false,
               "display": true,
               "type": "string",
-              "canBeUsedToMatch": true
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
               "id": "Escalation_Status",
@@ -487,7 +488,38 @@
               "defaultMatch": false,
               "display": true,
               "type": "string",
-              "canBeUsedToMatch": true
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Deadline_Reminder_Sent",
+              "displayName": "Deadline_Reminder_Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Deadline_Reminder_Date",
+              "displayName": "Deadline_Reminder_Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Last_Analyzed_Blocker",
+              "displayName": "Last_Analyzed_Blocker",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
               "id": "row_number",
@@ -596,7 +628,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "d14ceedc-e613-4f1b-98c7-d18ee3344e51",
+  "versionId": "fc02b905-c0f4-457f-9eb5-60945f04491d",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "30c7b244f5d63dbe2517412d112771116d00099cd6bdc11d68adc5b74041e029"
