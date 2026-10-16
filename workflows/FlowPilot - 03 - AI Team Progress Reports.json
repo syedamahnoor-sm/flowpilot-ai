@@ -1,0 +1,211 @@
+{
+  "name": "FlowPilot - 03 - AI Team Progress Reports",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "290d2624-0dc7-4d6a-8e56-9c7eeeb7be38",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1MAafj-EbHJiJbVSEtLJX3Z-fhCoxU7XoR6YiXBKLPWg",
+          "mode": "list",
+          "cachedResultName": "FlowPilot - Task Management",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MAafj-EbHJiJbVSEtLJX3Z-fhCoxU7XoR6YiXBKLPWg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Tasks",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MAafj-EbHJiJbVSEtLJX3Z-fhCoxU7XoR6YiXBKLPWg/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "aa4cd3e0-fa3a-4a92-b112-5bf8c03ca547",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hw85XIUy0yRso3o3",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "tasks",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "eb3ada30-0294-4990-b14d-3e7bb6166489",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{\n`You are FlowPilot, an AI-powered team workflow assistant.\n\nYour responsibility is to generate a professional weekly progress report for a project manager.\n\nREPORT DATE: ${$now.toISODate()}\n\nTEAM TASK DATA:\n${JSON.stringify($json.tasks, null, 2)}\n\nINSTRUCTIONS:\n1. Analyze every task provided.\n2. Calculate the total number of tasks.\n3. Count tasks by status: Completed, In Progress, Blocked, and Not Started.\n4. Identify overdue tasks by comparing deadlines against the report date.\n5. Exclude completed tasks from the overdue count.\n6. Highlight critical and high-priority tasks requiring attention.\n7. Identify blockers and explain their impact based only on the supplied information.\n8. Recommend three practical management actions.\n9. Do not invent task updates, progress, or missing information.\n10. Keep the report professional, concise, and easy to understand.\n\nOUTPUT FORMAT:\n\nWEEKLY TEAM PROGRESS REPORT\nReport Date:\n\nEXECUTIVE SUMMARY:\nA short overview of the team's current progress.\n\nTASK STATISTICS:\nTotal Tasks:\nCompleted:\nIn Progress:\nBlocked:\nNot Started:\nOverdue:\n\nKEY BLOCKERS:\nList blocked tasks with their Task IDs and reasons.\n\nOVERDUE TASKS:\nList overdue tasks with their Task IDs, deadlines, and assigned team members.\n\nHIGH-PRIORITY RISKS:\nHighlight urgent tasks requiring management attention.\n\nRECOMMENDED MANAGEMENT ACTIONS:\n1.\n2.\n3.\n\nOVERALL PROJECT HEALTH:\nChoose Green, Amber, or Red and explain briefly.\n\nReturn only the report.`\n}}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        672,
+        0
+      ],
+      "id": "a14645a9-777f-4490-9a4c-45fa83d9b6b0",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-5",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.6,
+      "position": [
+        672,
+        224
+      ],
+      "id": "4ee35a8a-8f72-4912-bd3b-e2eb7f161a95",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "syedamahnoor9e@gmail.com",
+        "subject": "FlowPilot | Weekly Team Progress Report",
+        "message": "={{\n(() => {\n  const escapeHtml = (value) => String(value ?? '')\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;');\n\n  const source = String($json.text ?? '')\n    .replace(/\\r\\n?/g, '\\n')\n    .replace(/\\\\n/g, '\\n');\n\n  const healthMatch = source.match(\n    /OVERALL PROJECT HEALTH:\\s*\\*{0,2}(Red|Amber|Green)\\*{0,2}\\s*\\n?([\\s\\S]*)/i\n  );\n\n  const status = healthMatch\n    ? healthMatch[1].toUpperCase()\n    : 'UNKNOWN';\n\n  const healthDescription = healthMatch\n    ? healthMatch[2].trim()\n    : 'No project health assessment provided.';\n\n  const colors = {\n    RED: {\n      background: '#FDECEC',\n      border: '#DC2626',\n      text: '#B91C1C'\n    },\n    AMBER: {\n      background: '#FFF7E6',\n      border: '#D97706',\n      text: '#92400E'\n    },\n    GREEN: {\n      background: '#ECFDF5',\n      border: '#16A34A',\n      text: '#166534'\n    },\n    UNKNOWN: {\n      background: '#F3F4F6',\n      border: '#6B7280',\n      text: '#374151'\n    }\n  };\n\n  const c = colors[status];\n\n  let report = healthMatch\n    ? source.slice(0, healthMatch.index).trim()\n    : source.trim();\n\n  // Remove duplicate title and report date\n  report = report\n    .replace(/^WEEKLY TEAM PROGRESS REPORT\\s*/i, '')\n    .replace(/^Report Date:\\s*[^\\n]+\\n?/i, '')\n    .trim();\n\n  // Escape HTML before adding formatting\n  report = escapeHtml(report);\n\n  // Convert Markdown bold\n  report = report.replace(\n    /\\*\\*(.*?)\\*\\*/g,\n    '<strong>$1</strong>'\n  );\n\n  // Format report section headings\n  report = report.replace(\n    /^([A-Z][A-Z -]+):[ \\t]*$/gm,\n    '<strong style=\"display:block;color:#176B48;font-size:16px;margin-top:22px;margin-bottom:8px;\">$1</strong>'\n  );\n\n  // Preserve line breaks only in report text\n  report = report.replace(/\\n/g, '<br>');\n\n  // Format health description separately\n  const formattedHealth = escapeHtml(healthDescription)\n    .replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>')\n    .replace(/\\n/g, '<br>');\n\n  return `\n<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\"\n  style=\"width:100%;max-width:750px;font-family:Arial,sans-serif;color:#222222;\">\n\n  <tr>\n    <td style=\"padding:20px;\">\n\n      <h2 style=\"color:#176B48;margin:0 0 10px 0;\">\n        FlowPilot | Weekly Team Progress Report\n      </h2>\n\n      <p style=\"color:#666666;font-size:14px;\">\n        <strong>Report Date:</strong> ${$now.toISODate()}\n      </p>\n\n      <hr style=\"border:0;border-top:1px solid #DDDDDD;margin:20px 0;\">\n\n      <div style=\"font-size:14px;line-height:1.8;\">\n        ${report}\n      </div>\n\n      <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\"\n        style=\"width:100%;margin-top:28px;border-collapse:collapse;\">\n\n        <tr>\n          <td bgcolor=\"${c.background}\"\n            style=\"background-color:${c.background};border-left:6px solid ${c.border};padding:20px;\">\n\n            <div style=\"font-size:15px;font-weight:bold;color:${c.text};\">\n              OVERALL PROJECT HEALTH\n            </div>\n\n            <div style=\"font-size:24px;font-weight:bold;color:${c.text};padding-top:12px;padding-bottom:12px;\">\n              ${status}\n            </div>\n\n            <div style=\"font-size:14px;line-height:1.7;color:#333333;\">\n              ${formattedHealth}\n            </div>\n\n          </td>\n        </tr>\n\n      </table>\n\n      <hr style=\"border:0;border-top:1px solid #DDDDDD;margin-top:28px;\">\n\n      <p style=\"font-size:12px;color:#777777;line-height:1.6;\">\n        This report was automatically generated by FlowPilot using AI.\n        Review important decisions against the source task data.\n      </p>\n\n    </td>\n  </tr>\n\n</table>`;\n})()\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        10.555585119459352
+      ],
+      "id": "ab59e152-d96a-4146-9d6c-0cc4ffa8521d",
+      "name": "Send a message",
+      "webhookId": "91503322-8764-4d44-b905-6cf21ec7027e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "clx0YiaoUZVxuR24",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e5d12590-8b81-4be5-8fd6-7029f3fd7759",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "30c7b244f5d63dbe2517412d112771116d00099cd6bdc11d68adc5b74041e029"
+  },
+  "nodeGroups": [],
+  "id": "Z1rwsgz6ZgV6fQeY",
+  "tags": []
+}
